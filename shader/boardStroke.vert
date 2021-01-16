@@ -6,10 +6,15 @@ uniform mat4 projectionMatrix;
 attribute vec3 position;
 attribute vec3 color;
 attribute vec3 displacement;
+
 varying vec3 vColor;
 
+vec3 toColorP(vec3 v) {
+  return v / 255.0;
+}
+
 void main(){
-  vColor = color;
+  vColor = toColorP(vec3(56.0, 132.0, 224.0));
   vec3 vv = position + displacement;
   gl_Position = projectionMatrix * modelViewMatrix * vec4(vv, 1.0);
 }

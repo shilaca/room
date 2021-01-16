@@ -13,7 +13,7 @@ import {
 } from 'three'
 import Tweakpane from 'tweakpane'
 import { rad2Deg } from 'calc-lib'
-import { Board } from './parts/board'
+import { Border } from './parts/border'
 
 export class App {
   renderer: WebGLRenderer
@@ -25,14 +25,7 @@ export class App {
   private currentCameraLookAt: Vector3
   private cameraLookAt: Vector3
 
-  private border: Group
-  private floor: Board
-  private wallC: Board
-  private wallL: Board
-  private wallR: Board
-  private ceiling: Board
-
-  private clock: Clock
+  private border: Border
 
   private pane: Tweakpane
 
@@ -43,7 +36,7 @@ export class App {
       canvas,
       antialias: true
     })
-    this.renderer.setClearColor(0xffffff)
+    this.renderer.setClearColor(0x051630)
     this.renderer.setPixelRatio(globalThis.devicePixelRatio || 1)
     // this.renderer.autoClear = false
     this.renderer.shadowMap.enabled = true
@@ -65,31 +58,8 @@ export class App {
     this.cameraLookAt = new Vector3(0)
 
     // setup room border
-    this.border = new Group()
+    this.border = new Border()
     this.scene.add(this.border)
-
-    this.floor = new Board(0x333333)
-    this.floor.rotateX(-Math.PI / 2)
-    this.border.add(this.floor)
-
-    this.ceiling = new Board(0x333333)
-    this.ceiling.position.set(0, 1, 0)
-    this.ceiling.rotateX(Math.PI / 2)
-    this.border.add(this.ceiling)
-
-    this.wallC = new Board(0x00fafa)
-    this.wallC.position.set(0, 0.5, -0.5)
-    this.border.add(this.wallC)
-
-    this.wallL = new Board(0xfa00fa)
-    this.wallL.rotateY(Math.PI / 2)
-    this.wallL.position.set(-0.5, 0.5, 0)
-    this.border.add(this.wallL)
-
-    this.wallR = new Board(0xfafa00)
-    this.wallR.rotateY(-Math.PI / 2)
-    this.wallR.position.set(0.5, 0.5, 0)
-    this.border.add(this.wallR)
 
     // setup lights
     const ambient = new AmbientLight(0xfafafa)
@@ -103,12 +73,11 @@ export class App {
     this.scene.add(point02)
 
     // animation
-    this.clock = new Clock(false)
 
     // debug settings
     const cameraPosRange = {
-      min: -300,
-      max: 300
+      min: -500,
+      max: 500
     }
     const cameraParam = this.pane.addFolder({ title: 'Camera' })
     cameraParam.addInput(this.cameraPos, 'x', cameraPosRange)
@@ -117,24 +86,6 @@ export class App {
     cameraParam.addInput(this.cameraLookAt, 'x', cameraPosRange)
     cameraParam.addInput(this.cameraLookAt, 'y', cameraPosRange)
     cameraParam.addInput(this.cameraLookAt, 'z', cameraPosRange)
-
-    const wallsParam = this.pane.addFolder({ title: 'walls' })
-    const rotateRange = {
-      min: -Math.PI,
-      max: Math.PI
-    }
-    const cr = wallsParam.addFolder({ title: 'center' })
-    cr.addInput(this.wallC.rotation, 'x', rotateRange)
-    cr.addInput(this.wallC.rotation, 'y', rotateRange)
-    cr.addInput(this.wallC.rotation, 'z', rotateRange)
-    const lr = wallsParam.addFolder({ title: 'left' })
-    lr.addInput(this.wallL.rotation, 'x', rotateRange)
-    lr.addInput(this.wallL.rotation, 'y', rotateRange)
-    lr.addInput(this.wallL.rotation, 'z', rotateRange)
-    const rr = wallsParam.addFolder({ title: 'right' })
-    rr.addInput(this.wallR.rotation, 'x', rotateRange)
-    rr.addInput(this.wallR.rotation, 'y', rotateRange)
-    rr.addInput(this.wallR.rotation, 'z', rotateRange)
   }
 
   /**
@@ -182,8 +133,10 @@ export class App {
   }
 
   start(): void {
-    this.calcFloorSize()
+    this.border.calcFloorSize()
     this.onResize(globalThis.innerWidth, globalThis.innerHeight)
+
+    console.log('scene: ', this.scene)
 
     this.animate()
   }
@@ -220,27 +173,5 @@ export class App {
 
   private render(): void {
     this.renderer.render(this.scene, this.camera)
-  }
-
-  /**
-   * floor のリサイズ
-   * @param n 何畳？
-   */
-  private calcFloorSize(n = 6): void {
-    // 畳サイズ (中京間) [cm]
-    const tatami = {
-      w: 182,
-      h: 91,
-      t: 60
-    }
-    switch (n) {
-      case 6:
-        this.border.scale.set(tatami.w * 2, 236, tatami.w + tatami.h)
-        break
-
-      default:
-        console.warn('this floor size is undefined: ', n)
-        break
-    }
   }
 }

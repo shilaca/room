@@ -6,6 +6,10 @@ module.exports = {
       exclude: /node_modules/
     })
 
+    config.watchOptions = {
+      poll: true
+    }
+
     return config
   }
 }

@@ -1,11 +1,13 @@
 precision mediump float;
 
-uniform float step;
 varying vec3 vColor;
 
+uniform float u_time;
+uniform float u_endTime;
+uniform int u_direction;
+
+
 void main(){
-    float r = vColor.r;
-    float g = vColor.g;
-    float b = vColor.b;
-    gl_FragColor = vec4(r, g, b, 1.0);
+
+    gl_FragColor = vec4(vColor, 1.0);
 }

@@ -18,7 +18,7 @@
     "strict": true,
     "target": "esnext"
   },
-  "files": ["types/**"],
+  "files": ["types/**.d.ts"],
   "exclude": ["node_modules"],
   "include": ["**/*.ts", "**/*.tsx"]
 }
