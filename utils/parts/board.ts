@@ -38,8 +38,8 @@ export class Board extends Group {
   private points_mat: PointsMaterial
   private points: Points
 
-  private verWires: Group
-  private horWires: Group
+  verWires: Group
+  horWires: Group
 
   private fill_mat: MeshBasicMaterial
   private fill: Mesh
