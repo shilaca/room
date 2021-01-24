@@ -1,15 +1,23 @@
 import {
   BufferAttribute,
   BufferGeometry,
+  DoubleSide,
   DynamicDrawUsage,
   Group,
+  Material,
   Mesh,
   MeshBasicMaterial,
+  MeshLambertMaterial,
   PlaneBufferGeometry,
   Points,
-  PointsMaterial
+  PointsMaterial,
+  RawShaderMaterial,
+  Texture
 } from 'three'
+import { App } from '../app'
 import { Wire } from './wire'
+import VERT_FILL from '../../shader/boardFill.vert'
+import FRAG_FILL from '../../shader/boardFill.frag'
 
 /**
  * used in border
@@ -41,10 +49,10 @@ export class Board extends Group {
   verWires: Group
   horWires: Group
 
-  private fill_mat: MeshBasicMaterial
+  private fill_mat: Material
   private fill: Mesh
 
-  constructor() {
+  constructor(private direction: 1 | 2 | 3 | 4 | 5, private texture: Texture) {
     super()
 
     this.geo = new PlaneBufferGeometry(1, 1, this.WS, this.HS)
@@ -88,16 +96,32 @@ export class Board extends Group {
       this.verWires.add(new Wire(pointsV, this.WS))
       this.horWires.add(new Wire(pointsH, this.HS, 0xff84e0))
     }
+    this.verWires.layers.enable(App.LAYER_BLOOM)
+    this.horWires.layers.enable(App.LAYER_BLOOM)
     this.add(this.verWires)
     this.add(this.horWires)
 
-    this.fill_mat = new MeshBasicMaterial({
-      transparent: true,
-      opacity: 0
+    // this.texture.needsUpdate = true
+    // this.fill_mat = new MeshBasicMaterial({
+    //   color: 0xfd5937,
+    //   transparent: true,
+    //   opacity: 1,
+    //   map: this.texture
+    // })
+    this.fill_mat = new RawShaderMaterial({
+      uniforms: {
+        u_time: { value: 0 },
+        u_endTime: { value: 0 },
+        u_direction: { value: this.direction },
+        u_main_texture: { value: this.texture }
+      },
+      vertexShader: VERT_FILL,
+      fragmentShader: FRAG_FILL,
+      side: DoubleSide
     })
     this.fill = new Mesh(this.geo, this.fill_mat)
     this.fill.position.setZ(0.01)
-    this.fill.visible = false
+    // this.fill.visible = false
     this.add(this.fill)
   }
 }

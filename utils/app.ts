@@ -6,9 +6,11 @@ import {
   Material,
   Mesh,
   MeshBasicMaterial,
+  MeshLambertMaterial,
   Object3D,
   PCFShadowMap,
   PerspectiveCamera,
+  PointLight,
   ReinhardToneMapping,
   Scene,
   ShaderMaterial,
@@ -16,7 +18,8 @@ import {
   sRGBEncoding,
   Vector2,
   Vector3,
-  WebGLRenderer
+  WebGLRenderer,
+  Texture
 } from 'three'
 import { EffectComposer } from '../node_modules/three/examples/jsm/postprocessing/EffectComposer.js'
 import { RenderPass } from '../node_modules/three/examples/jsm/postprocessing/RenderPass.js'
@@ -29,8 +32,8 @@ import VERT_MAIN from '../shader/main.vert'
 import FRAG_MAIN from '../shader/main.frag'
 
 export class App {
-  private readonly LAYER_MAIN = 0
-  private readonly LAYER_BLOOM = 1
+  static LAYER_MAIN = 0
+  static LAYER_BLOOM = 1
 
   private layerBloom: Layers
   private darkMaterial: MeshBasicMaterial
@@ -51,7 +54,16 @@ export class App {
 
   private pane: Tweakpane
 
-  constructor(canvas: HTMLCanvasElement) {
+  constructor(
+    canvas: HTMLCanvasElement,
+    textures: {
+      floor: Texture
+      ceiling: Texture
+      wallC: Texture
+      wallL: Texture
+      wallR: Texture
+    }
+  ) {
     this.pane = new Tweakpane()
 
     this.renderer = new WebGLRenderer({
@@ -67,7 +79,7 @@ export class App {
     this.renderer.toneMapping = ReinhardToneMapping
 
     this.layerBloom = new Layers()
-    this.layerBloom.set(this.LAYER_BLOOM)
+    this.layerBloom.set(App.LAYER_BLOOM)
     this.darkMaterial = new MeshBasicMaterial({ color: 0x000000 })
     this.materials = {}
 
@@ -86,8 +98,15 @@ export class App {
     this.cameraLookAt = new Vector3(0)
 
     // setup lights
-    const ambient = new AmbientLight(0x404040)
+    const ambient = new AmbientLight(0xdddddd)
     this.scene.add(ambient)
+
+    const pointLight01 = new PointLight(0xdd0000)
+    pointLight01.position.set(-100, 100, -100)
+    this.scene.add(pointLight01)
+    const pointLight02 = new PointLight(0x0000dd)
+    pointLight02.position.set(100, 100, -100)
+    this.scene.add(pointLight02)
 
     const renderScene = new RenderPass(this.scene, this.camera)
 
@@ -124,15 +143,14 @@ export class App {
     // setup object
     this.scene.traverse(this.disposeMaterial.bind(this))
 
-    this.border = new Border()
-    this.border.layers.enable(this.LAYER_BLOOM)
+    this.border = new Border(textures)
     this.scene.add(this.border)
 
     const color = new Color()
     color.setHSL(0.5, 0.7, 0.2 + 0.05)
     const mesh = new Mesh(
       new SphereGeometry(100),
-      new MeshBasicMaterial({ color })
+      new MeshLambertMaterial({ color })
     )
     this.scene.add(mesh)
 

@@ -1,4 +1,4 @@
-import { Clock, Group } from 'three'
+import { Clock, Group, Texture } from 'three'
 import { Board } from './board'
 
 export class Border extends Group {
@@ -11,28 +11,34 @@ export class Border extends Group {
   private state: 'appear' | 'in' | 'out' | 'idle'
   private clock: Clock
 
-  constructor() {
+  constructor(textures: {
+    floor: Texture
+    ceiling: Texture
+    wallC: Texture
+    wallL: Texture
+    wallR: Texture
+  }) {
     super()
 
-    this.floor = new Board()
+    this.floor = new Board(4, textures.floor)
     this.floor.rotateX(-Math.PI / 2)
     this.add(this.floor)
 
-    this.ceiling = new Board()
+    this.ceiling = new Board(3, textures.ceiling)
     this.ceiling.position.set(0, 1, 0)
     this.ceiling.rotateX(Math.PI / 2)
     this.add(this.ceiling)
 
-    this.wallC = new Board()
+    this.wallC = new Board(1, textures.wallC)
     this.wallC.position.set(0, 0.5, -0.5)
     this.add(this.wallC)
 
-    this.wallL = new Board()
+    this.wallL = new Board(5, textures.wallL)
     this.wallL.rotateY(Math.PI / 2)
     this.wallL.position.set(-0.5, 0.5, 0)
     this.add(this.wallL)
 
-    this.wallR = new Board()
+    this.wallR = new Board(2, textures.wallR)
     this.wallR.rotateY(-Math.PI / 2)
     this.wallR.position.set(0.5, 0.5, 0)
     this.add(this.wallR)
