@@ -2,7 +2,6 @@ import { FC, useEffect, useRef, useState } from 'react'
 import { CanvasTexture } from 'three'
 import { AssetStore } from 'three-asset-store'
 import { useEventListener } from '../hooks/eventListener'
-import { useResizeObserver } from '../hooks/resizeObserver'
 import styles from '../styles/Room.module.scss'
 import { App } from '../utils/app'
 
@@ -12,21 +11,24 @@ const Room: FC = () => {
   const [assetsStore, setAssetsStore] = useState<AssetStore>()
 
   useEffect(() => {
-    const _assetsStore = new AssetStore({
-      useIDB: false,
-      useWorker: false,
-      dracoDir: '../node_modules/three-asset-store/dist/assets/draco'
-    })
-    _assetsStore
-      .initialize()
-      .then(_ =>
-        _assetsStore.getOrLoadAsset<ImageBitmap>(`/textures/uvChecker.png`)
-      )
-      .then(imageBitMap => {
-        const texture = new CanvasTexture(imageBitMap as any)
-        console.log('loadedd ', texture)
-        if (canvasRef.current) {
-          const _app = new App(canvasRef.current, {
+    if (canvasRef.current) {
+      const _assetStore = new AssetStore({
+        useIDB: false,
+        useWorker: false,
+        dracoDir: '../node_modules/three-asset-store/dist/assets/draco'
+      })
+      setAssetsStore(_assetStore)
+      const _app = new App(canvasRef.current)
+      setApp(_app)
+      // set up
+      _assetStore
+        .initialize()
+        .then(_ =>
+          _assetStore.getOrLoadAsset<ImageBitmap>(`/textures/uvChecker.png`)
+        )
+        .then(imageBitMap => {
+          const texture = new CanvasTexture(imageBitMap as any)
+          _app.initialize({
             floor: texture,
             ceiling: texture,
             wallC: texture,
@@ -34,16 +36,14 @@ const Room: FC = () => {
             wallR: texture
           })
           _app.start()
-          setApp(_app)
-        }
-      })
-    setAssetsStore(_assetsStore)
+        })
+    }
   }, [])
 
-  useResizeObserver(canvasRef.current, entries => {
-    entries.forEach(entry => {
-      app?.onResize(entry.contentRect.width, entry.contentRect.height)
-    })
+  useEventListener(globalThis, 'resize', (event: Event) => {
+    if (app && canvasRef.current) {
+      app.onResize(globalThis.innerWidth, globalThis.innerHeight)
+    }
   })
 
   useEventListener(canvasRef.current, 'mousemove', (event: MouseEvent) => {

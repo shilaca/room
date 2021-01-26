@@ -3,7 +3,7 @@ import { useRef, useEffect } from 'react'
 type _EventListener<K extends Event> = (event: K) => void
 
 export function useEventListener<T extends Event>(
-  element: HTMLElement | Window | null,
+  element: HTMLElement | Window | typeof globalThis | null,
   eventName: string,
   handler: _EventListener<T>
 ): void {

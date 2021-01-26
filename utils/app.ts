@@ -35,6 +35,8 @@ export class App {
   static LAYER_MAIN = 0
   static LAYER_BLOOM = 1
 
+  private initialized = false
+
   private layerBloom: Layers
   private darkMaterial: MeshBasicMaterial
   private materials: { [key: string]: Material | Material[] }
@@ -50,20 +52,18 @@ export class App {
   private currentCameraLookAt: Vector3
   private cameraLookAt: Vector3
 
-  private border: Border
+  private _border: Border | undefined
+  private get border(): Border {
+    if (this._border) return this._border
+    else throw new ReferenceError('Please run initialze()')
+  }
+  private set border(b: Border) {
+    this._border = b
+  }
 
   private pane: Tweakpane
 
-  constructor(
-    canvas: HTMLCanvasElement,
-    textures: {
-      floor: Texture
-      ceiling: Texture
-      wallC: Texture
-      wallL: Texture
-      wallR: Texture
-    }
-  ) {
+  constructor(canvas: HTMLCanvasElement) {
     this.pane = new Tweakpane()
 
     this.renderer = new WebGLRenderer({
@@ -140,22 +140,6 @@ export class App {
     this.mainComposer.addPass(renderScene)
     this.mainComposer.addPass(mainPass)
 
-    // setup object
-    this.scene.traverse(this.disposeMaterial.bind(this))
-
-    this.border = new Border(textures)
-    this.scene.add(this.border)
-
-    const color = new Color()
-    color.setHSL(0.5, 0.7, 0.2 + 0.05)
-    const mesh = new Mesh(
-      new SphereGeometry(100),
-      new MeshLambertMaterial({ color })
-    )
-    this.scene.add(mesh)
-
-    // animation
-
     // debug settings
     // const cameraPosRange = {
     //   min: -500,
@@ -178,6 +162,31 @@ export class App {
     })
   }
 
+  initialize(textures: {
+    floor: Texture
+    ceiling: Texture
+    wallC: Texture
+    wallL: Texture
+    wallR: Texture
+  }): void {
+    // setup object
+    this.scene.traverse(this.disposeMaterial.bind(this))
+
+    this.border = new Border(textures)
+    this.scene.add(this.border)
+
+    const color = new Color()
+    color.setHSL(0.5, 0.7, 0.2 + 0.05)
+    const mesh = new Mesh(
+      new SphereGeometry(100),
+      new MeshLambertMaterial({ color })
+    )
+    this.scene.add(mesh)
+
+    // animation
+    this.initialized = true
+  }
+
   /**
    * floor サイズの変更がある場合はこの関数が呼ばれる前に
    * calcFloorSize を呼ぶ
@@ -185,6 +194,7 @@ export class App {
    * @param h window height
    */
   onResize(w: number, h: number): void {
+    if (!this.initialized) return
     // camera の設定更新
     // fov: 高さが収まるように
     // posZ: floor のちょい内側
@@ -209,6 +219,7 @@ export class App {
    * @param y canvas.offsetY
    */
   onMousemove(x: number, y: number): void {
+    if (!this.initialized) return
     const rect = this.renderer.domElement.getBoundingClientRect()
     const wp = x / rect.width - 0.5
     const hp = 1 - y / rect.height
@@ -226,6 +237,7 @@ export class App {
   }
 
   start(): void {
+    if (!this.initialized) return
     this.border.calcFloorSize()
     this.onResize(globalThis.innerWidth, globalThis.innerHeight)
 
