@@ -1,13 +1,10 @@
 import {
   BufferAttribute,
   BufferGeometry,
-  DoubleSide,
+  FrontSide,
   DynamicDrawUsage,
   Group,
-  Material,
   Mesh,
-  MeshBasicMaterial,
-  MeshLambertMaterial,
   PlaneBufferGeometry,
   Points,
   PointsMaterial,
@@ -18,23 +15,26 @@ import { App } from '../app'
 import { Wire } from './wire'
 import VERT_FILL from '../../shader/boardFill.vert'
 import FRAG_FILL from '../../shader/boardFill.frag'
+import { FormatUniforms, formatUniforms } from '../utils'
+
+interface FillMaterialUniforms {
+  u_time: number // [float; ms] 時間経過 アニメーションの開始は 0ms から始まる
+  u_endTime: number // [float; ms] アニメーションの終了時間
+  u_direction: number // [int] 位置 下のコメント参照
+  /*        -----
+   *        | 3 |
+   *    -------------
+   *    | 5 | 1 | 2 |
+   *    -------------
+   *        | 4 |
+   *        -----
+   */
+  u_main_texture: Texture
+}
+type FillMaterialUniformsKey = keyof FillMaterialUniforms
 
 /**
  * used in border
- *
- * stroke material uniforms
- * {
- *  u_time:       [float; ms] 時間経過 アニメーションの開始は 0ms から始まる
- *  u_endTime:    [float; ms] アニメーションの終了時間
- *  u_direction:  [int]       位置
- *        -----
- *        | 3 |
- *    -------------
- *    | 5 | 1 | 2 |
- *    -------------
- *        | 4 |
- *        -----
- * }
  */
 export class Board extends Group {
   private readonly WS: number = 6
@@ -49,14 +49,16 @@ export class Board extends Group {
   verWires: Group
   horWires: Group
 
-  private fill_mat: Material
-  private fill: Mesh
+  private fill_mat: RawShaderMaterial
+  fill: Mesh
 
   constructor(private direction: 1 | 2 | 3 | 4 | 5, private texture: Texture) {
     super()
 
+    // base geometry
     this.geo = new PlaneBufferGeometry(1, 1, this.WS, this.HS)
 
+    // setup points
     const particlesPos = this.geo.attributes.position.array
     this.particles = new BufferGeometry()
     this.particles.setAttribute(
@@ -68,8 +70,8 @@ export class Board extends Group {
       size: 4
     })
     this.points = new Points(this.particles, this.points_mat)
-    this.add(this.points)
 
+    // setup wire
     const _w = this.WS + 1
     const _h = this.HS
     this.verWires = new Group()
@@ -96,32 +98,43 @@ export class Board extends Group {
       this.verWires.add(new Wire(pointsV, this.WS))
       this.horWires.add(new Wire(pointsH, this.HS, 0xff84e0))
     }
-    this.verWires.layers.enable(App.LAYER_BLOOM)
-    this.horWires.layers.enable(App.LAYER_BLOOM)
-    this.add(this.verWires)
-    this.add(this.horWires)
 
-    // this.texture.needsUpdate = true
-    // this.fill_mat = new MeshBasicMaterial({
-    //   color: 0xfd5937,
-    //   transparent: true,
-    //   opacity: 1,
-    //   map: this.texture
-    // })
+    // setup board
+    const fillUniforms: FillMaterialUniforms = {
+      u_time: 0,
+      u_endTime: 0,
+      u_direction: this.direction,
+      u_main_texture: this.texture
+    }
     this.fill_mat = new RawShaderMaterial({
-      uniforms: {
-        u_time: { value: 0 },
-        u_endTime: { value: 0 },
-        u_direction: { value: this.direction },
-        u_main_texture: { value: this.texture }
-      },
+      uniforms: formatUniforms(fillUniforms),
       vertexShader: VERT_FILL,
       fragmentShader: FRAG_FILL,
-      side: DoubleSide
+      side: FrontSide,
+      transparent: true
+      // opacity: 0.5
     })
     this.fill = new Mesh(this.geo, this.fill_mat)
     this.fill.position.setZ(0.01)
-    // this.fill.visible = false
+
+    // set layers
+    this.verWires.layers.enable(App.LAYER_BLOOM)
+    this.horWires.layers.enable(App.LAYER_BLOOM)
+    this.fill.layers.enable(App.LAYER_BLOOM_ESC)
+
+    // add
+    this.add(this.points)
+    this.add(this.verWires)
+    this.add(this.horWires)
     this.add(this.fill)
+  }
+
+  updateUniforms(uniforms: Partial<FillMaterialUniforms>): void {
+    for (const [k, v] of Object.entries(uniforms)) {
+      const key = k as FillMaterialUniformsKey
+      const val = v as FillMaterialUniforms[FillMaterialUniformsKey]
+      const uni = this.fill_mat.uniforms as FormatUniforms<FillMaterialUniforms>
+      uni[key].value = val
+    }
   }
 }

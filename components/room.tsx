@@ -3,7 +3,7 @@ import { CanvasTexture } from 'three'
 import { AssetStore } from 'three-asset-store'
 import { useEventListener } from '../hooks/eventListener'
 import styles from '../styles/Room.module.scss'
-import { App } from '../utils/app'
+import { App } from '../libs/app'
 
 const Room: FC = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null)
@@ -28,15 +28,15 @@ const Room: FC = () => {
         )
         .then(imageBitMap => {
           const texture = new CanvasTexture(imageBitMap as any)
-          _app.initialize({
+          return _app.initialize({
             floor: texture,
             ceiling: texture,
             wallC: texture,
             wallL: texture,
             wallR: texture
           })
-          _app.start()
         })
+        .then(_ => _app.start())
     }
   }, [])
 

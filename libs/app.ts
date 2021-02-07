@@ -21,10 +21,6 @@ import {
   WebGLRenderer,
   Texture
 } from 'three'
-import { EffectComposer } from '../node_modules/three/examples/jsm/postprocessing/EffectComposer.js'
-import { RenderPass } from '../node_modules/three/examples/jsm/postprocessing/RenderPass.js'
-import { ShaderPass } from '../node_modules/three/examples/jsm/postprocessing/ShaderPass.js'
-import { UnrealBloomPass } from '../node_modules/three/examples/jsm/postprocessing/UnrealBloomPass.js'
 import Tweakpane from 'tweakpane'
 import { rad2Deg } from 'calc-lib'
 import { Border } from './parts/border'
@@ -34,16 +30,35 @@ import FRAG_MAIN from '../shader/main.frag'
 export class App {
   static LAYER_MAIN = 0
   static LAYER_BLOOM = 1
+  static LAYER_BLOOM_ESC = 2
 
   private initialized = false
 
   private layerBloom: Layers
+  private layerBloomEsc: Layers
   private darkMaterial: MeshBasicMaterial
   private materials: { [key: string]: Material | Material[] }
 
   private renderer: WebGLRenderer
-  private bloomComposer: EffectComposer
-  private mainComposer: EffectComposer
+
+  private _bloomComposer: any | undefined
+  // private _bloomComposer: EffectComposer | undefined
+  private get bloomComposer() {
+    if (this._bloomComposer) return this._bloomComposer
+    else throw new ReferenceError('Please run initialze()')
+  }
+  private set bloomComposer(v) {
+    this._bloomComposer = v
+  }
+  private _mainComposer: any | undefined
+  // private _mainComposer: EffectComposer | undefined
+  private get mainComposer() {
+    if (this._mainComposer) return this._mainComposer
+    else throw new ReferenceError('Please run initialze()')
+  }
+  private set mainComposer(v) {
+    this._mainComposer = v
+  }
 
   private scene: Scene
   private camera: PerspectiveCamera
@@ -61,16 +76,21 @@ export class App {
     this._border = b
   }
 
+  // debug
   private pane: Tweakpane
 
-  constructor(canvas: HTMLCanvasElement) {
+  constructor(
+    canvas: HTMLCanvasElement,
+    private clearColor: number = 0x051630
+  ) {
     this.pane = new Tweakpane()
 
+    // setup
     this.renderer = new WebGLRenderer({
       canvas,
       antialias: true
     })
-    this.renderer.setClearColor(0x051630)
+    this.renderer.setClearColor(this.clearColor)
     this.renderer.setPixelRatio(globalThis.devicePixelRatio || 1)
     // this.renderer.autoClear = false
     this.renderer.shadowMap.enabled = true
@@ -80,11 +100,12 @@ export class App {
 
     this.layerBloom = new Layers()
     this.layerBloom.set(App.LAYER_BLOOM)
+    this.layerBloomEsc = new Layers()
+    this.layerBloomEsc.set(App.LAYER_BLOOM_ESC)
     this.darkMaterial = new MeshBasicMaterial({ color: 0x000000 })
     this.materials = {}
 
     this.scene = new Scene()
-    this.scene.add(new AxesHelper(100))
 
     this.camera = new PerspectiveCamera(
       45,
@@ -108,8 +129,50 @@ export class App {
     pointLight02.position.set(100, 100, -100)
     this.scene.add(pointLight02)
 
-    const renderScene = new RenderPass(this.scene, this.camera)
+    // debug settings
+    // const cameraPosRange = {
+    //   min: -500,
+    //   max: 500
+    // }
+    // const cameraParam = this.pane.addFolder({ title: 'Camera' })
+    // cameraParam.addInput(this.cameraPos, 'x', cameraPosRange)
+    // cameraParam.addInput(this.cameraPos, 'y', cameraPosRange)
+    // cameraParam.addInput(this.cameraPos, 'z', cameraPosRange)
+    // cameraParam.addInput(this.cameraLookAt, 'x', cameraPosRange)
+    // cameraParam.addInput(this.cameraLookAt, 'y', cameraPosRange)
+    // cameraParam.addInput(this.cameraLookAt, 'z', cameraPosRange)
+    // const bloomParam = this.pane.addFolder({ title: 'Bloom' })
+    // bloomParam.addInput(bloomPass, 'strength', { min: 0.0, max: 10.0 })
+    // bloomParam.addInput(bloomPass, 'radius', { min: 0.0, max: 1.0, step: 0.01 })
+    // bloomParam.addInput(bloomPass, 'threshold', {
+    //   min: 0.0,
+    //   max: 1.0,
+    //   step: 0.01
+    // })
+  }
 
+  async initialize(textures: {
+    floor: Texture
+    ceiling: Texture
+    wallC: Texture
+    wallL: Texture
+    wallR: Texture
+  }): Promise<void> {
+    const { EffectComposer } = await import(
+      'three/examples/jsm/postprocessing/EffectComposer'
+    )
+    const { RenderPass } = await import(
+      'three/examples/jsm/postprocessing/RenderPass'
+    )
+    const { ShaderPass } = await import(
+      'three/examples/jsm/postprocessing/ShaderPass'
+    )
+    const { UnrealBloomPass } = await import(
+      'three/examples/jsm/postprocessing/UnrealBloomPass'
+    )
+
+    // setup Composer
+    const bloomRenderScene = new RenderPass(this.scene, this.camera)
     const bloomPass = new UnrealBloomPass(
       new Vector2(
         this.renderer.domElement.width,
@@ -121,9 +184,10 @@ export class App {
     )
     this.bloomComposer = new EffectComposer(this.renderer)
     this.bloomComposer.renderToScreen = false
-    this.bloomComposer.addPass(renderScene)
+    this.bloomComposer.addPass(bloomRenderScene)
     this.bloomComposer.addPass(bloomPass)
 
+    const mainRenderScene = new RenderPass(this.scene, this.camera)
     const mainPass = new ShaderPass(
       new ShaderMaterial({
         uniforms: {
@@ -137,38 +201,9 @@ export class App {
     )
     mainPass.needsSwap = true
     this.mainComposer = new EffectComposer(this.renderer)
-    this.mainComposer.addPass(renderScene)
+    this.mainComposer.addPass(mainRenderScene)
     this.mainComposer.addPass(mainPass)
 
-    // debug settings
-    // const cameraPosRange = {
-    //   min: -500,
-    //   max: 500
-    // }
-    // const cameraParam = this.pane.addFolder({ title: 'Camera' })
-    // cameraParam.addInput(this.cameraPos, 'x', cameraPosRange)
-    // cameraParam.addInput(this.cameraPos, 'y', cameraPosRange)
-    // cameraParam.addInput(this.cameraPos, 'z', cameraPosRange)
-    // cameraParam.addInput(this.cameraLookAt, 'x', cameraPosRange)
-    // cameraParam.addInput(this.cameraLookAt, 'y', cameraPosRange)
-    // cameraParam.addInput(this.cameraLookAt, 'z', cameraPosRange)
-    const bloomParam = this.pane.addFolder({ title: 'Bloom' })
-    bloomParam.addInput(bloomPass, 'strength', { min: 0.0, max: 10.0 })
-    bloomParam.addInput(bloomPass, 'radius', { min: 0.0, max: 1.0, step: 0.01 })
-    bloomParam.addInput(bloomPass, 'threshold', {
-      min: 0.0,
-      max: 1.0,
-      step: 0.01
-    })
-  }
-
-  initialize(textures: {
-    floor: Texture
-    ceiling: Texture
-    wallC: Texture
-    wallL: Texture
-    wallR: Texture
-  }): void {
     // setup object
     this.scene.traverse(this.disposeMaterial.bind(this))
 
@@ -179,7 +214,11 @@ export class App {
     color.setHSL(0.5, 0.7, 0.2 + 0.05)
     const mesh = new Mesh(
       new SphereGeometry(100),
-      new MeshLambertMaterial({ color })
+      new MeshLambertMaterial({
+        color
+        // transparent: true,
+        // opacity: 0.4
+      })
     )
     this.scene.add(mesh)
 
@@ -243,10 +282,15 @@ export class App {
 
     console.log('scene: ', this.scene)
 
+    this.border.clock.start()
+
     this.animate()
   }
 
   private animate(): void {
+    // update scene
+    this.border.update()
+
     // update camera
     const cameraPos = new Vector3()
     cameraPos.copy(this.camera.position)
@@ -277,8 +321,10 @@ export class App {
   }
 
   private render(): void {
+    this.border.switch('wire')
     this.scene.traverse(this.darkenNonBloomed.bind(this))
     this.bloomComposer.render()
+    this.border.switch('fill')
     this.scene.traverse(this.restoreMaterial.bind(this))
     this.mainComposer.render()
     // this.renderer.render(this.scene, this.camera)
@@ -294,7 +340,10 @@ export class App {
 
   private darkenNonBloomed(_obj: Object3D): void {
     const obj = _obj as Mesh
-    if (obj.isMesh && !this.layerBloom.test(obj.layers)) {
+    if (
+      obj.isMesh &&
+      !(this.layerBloom.test(obj.layers) || this.layerBloomEsc.test(obj.layers))
+    ) {
       this.materials[obj.uuid] = obj.material
       obj.material = this.darkMaterial
     }
