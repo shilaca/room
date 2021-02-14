@@ -17,7 +17,7 @@ import VERT_FILL from '../../shader/boardFill.vert'
 import FRAG_FILL from '../../shader/boardFill.frag'
 import { FormatUniforms, formatUniforms } from '../utils'
 
-interface FillMaterialUniforms {
+export interface FillMaterialUniforms {
   u_time: number // [float; ms] 時間経過 アニメーションの開始は 0ms から始まる
   u_endTime: number // [float; ms] アニメーションの終了時間
   u_direction: number // [int] 位置 下のコメント参照
@@ -37,8 +37,8 @@ type FillMaterialUniformsKey = keyof FillMaterialUniforms
  * used in border
  */
 export class Board extends Group {
-  private readonly WS: number = 6
-  private readonly HS: number = 6
+  private readonly WS: number = 8
+  private readonly HS: number = 8
 
   private geo: PlaneBufferGeometry
 
@@ -67,7 +67,7 @@ export class Board extends Group {
     )
     this.points_mat = new PointsMaterial({
       color: 0x3884e0,
-      size: 4
+      size: 2
     })
     this.points = new Points(this.particles, this.points_mat)
 
@@ -101,8 +101,8 @@ export class Board extends Group {
 
     // setup board
     const fillUniforms: FillMaterialUniforms = {
-      u_time: 0,
-      u_endTime: 0,
+      u_time: 0.0,
+      u_endTime: 3.0,
       u_direction: this.direction,
       u_main_texture: this.texture
     }
@@ -115,7 +115,7 @@ export class Board extends Group {
       // opacity: 0.5
     })
     this.fill = new Mesh(this.geo, this.fill_mat)
-    this.fill.position.setZ(0.01)
+    this.fill.position.setZ(0.001)
 
     // set layers
     this.verWires.layers.enable(App.LAYER_BLOOM)
@@ -123,10 +123,10 @@ export class Board extends Group {
     this.fill.layers.enable(App.LAYER_BLOOM_ESC)
 
     // add
+    this.add(this.fill)
     this.add(this.points)
     this.add(this.verWires)
     this.add(this.horWires)
-    this.add(this.fill)
   }
 
   updateUniforms(uniforms: Partial<FillMaterialUniforms>): void {

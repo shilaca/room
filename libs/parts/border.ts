@@ -1,5 +1,5 @@
 import { Clock, Group, Texture } from 'three'
-import { Board } from './board'
+import { Board, FillMaterialUniforms } from './board'
 
 interface BorderParts {
   floor: Board
@@ -45,7 +45,9 @@ export class Border extends Group {
   wire: Group
   fill: Group
 
-  private state: 'appear' | 'in' | 'out' | 'idle'
+  static APPEARANCE_TIME = 2.4
+  static DISAPPEARANCE_TIME = 2.4
+  private state: 'invisible' | 'in' | 'visible' | 'out'
   clock: Clock
 
   constructor(textures: {
@@ -83,7 +85,7 @@ export class Border extends Group {
     this.wallR.position.set(0.5, 0.5, 0)
     this.add(this.wallR)
 
-    this.state = 'idle'
+    this.state = 'invisible'
     this.clock = new Clock(false)
   }
 
@@ -112,12 +114,19 @@ export class Border extends Group {
   }
 
   update(): void {
-    const u_time = this.clock.getElapsedTime()
-    // console.log(u_time)
-    // const u_time = this.clock.elapsedTime
     for (const [k, v] of Object.entries(this.boards)) {
-      if (this.clock.running) v?.updateUniforms({ u_time })
+      v?.updateUniforms(this.getCurrentUniform())
     }
+  }
+
+  appear(): void {
+    this.state = 'in'
+    this.clock.start()
+  }
+
+  disappear(): void {
+    this.state = 'out'
+    this.clock.start()
   }
 
   /**
@@ -140,6 +149,46 @@ export class Border extends Group {
         console.warn('this floor size is undefined: ', n)
         break
     }
+  }
+
+  private getCurrentUniform(): Partial<FillMaterialUniforms> {
+    let u_time = 0
+    let u_endTime = 0
+    switch (this.state) {
+
+      case 'in':
+        u_time = this.clock.getElapsedTime()
+        u_endTime = Border.APPEARANCE_TIME
+        if (u_time >= u_endTime) {
+          this.clock.stop()
+          this.state = 'visible'
+          u_time = u_endTime
+        }
+        break
+
+      case 'out':
+        u_endTime = Border.DISAPPEARANCE_TIME
+        u_time = u_endTime - this.clock.getElapsedTime()
+        if (u_time <= 0) {
+          this.clock.stop()
+          this.state = 'invisible'
+          u_time = 0
+        }
+        break;
+
+      case 'visible':
+        u_time = 1
+        u_endTime = 1
+        break
+
+      case 'invisible':
+      default:
+        u_time = 0
+        u_endTime = -1
+        break
+
+    }
+    return { u_time, u_endTime }
   }
 
   private _get(key: keyof BorderParts): Board {

@@ -19,7 +19,10 @@ import {
   Vector2,
   Vector3,
   WebGLRenderer,
-  Texture
+  WebGLRenderTarget,
+  Texture,
+  RGBAFormat,
+  LinearFilter
 } from 'three'
 import Tweakpane from 'tweakpane'
 import { rad2Deg } from 'calc-lib'
@@ -29,8 +32,8 @@ import FRAG_MAIN from '../shader/main.frag'
 
 export class App {
   static LAYER_MAIN = 0
-  static LAYER_BLOOM = 1
-  static LAYER_BLOOM_ESC = 2
+  static LAYER_BLOOM = 10
+  static LAYER_BLOOM_ESC = 9
 
   private initialized = false
 
@@ -88,9 +91,10 @@ export class App {
     // setup
     this.renderer = new WebGLRenderer({
       canvas,
-      antialias: true
+      antialias: true,
+      alpha: true
     })
-    this.renderer.setClearColor(this.clearColor)
+    this.renderer.setClearColor(this.clearColor, 0)
     this.renderer.setPixelRatio(globalThis.devicePixelRatio || 1)
     // this.renderer.autoClear = false
     this.renderer.shadowMap.enabled = true
@@ -106,6 +110,7 @@ export class App {
     this.materials = {}
 
     this.scene = new Scene()
+    this.scene.background = null
 
     this.camera = new PerspectiveCamera(
       45,
@@ -149,6 +154,14 @@ export class App {
     //   max: 1.0,
     //   step: 0.01
     // })
+    const appearBtn = this.pane.addButton({
+      title: 'Appear'
+    })
+    appearBtn.on('click', () => this.border.appear())
+    const disappearBtn = this.pane.addButton({
+      title: 'Disappear'
+    })
+    disappearBtn.on('click', () => this.border.disappear())
   }
 
   async initialize(textures: {
