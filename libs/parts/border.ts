@@ -9,6 +9,8 @@ interface BorderParts {
   ceiling: Board
 }
 
+type AlpayBoardsFunc = (k: keyof BorderParts, v: Board) => void
+
 export class Border extends Group {
   private boards: Partial<BorderParts> = {}
   get floor(): Board {
@@ -45,8 +47,8 @@ export class Border extends Group {
   wire: Group
   fill: Group
 
-  static APPEARANCE_TIME = 2.4
-  static DISAPPEARANCE_TIME = 2.4
+  static APPEARANCE_TIME = 1.8
+  static DISAPPEARANCE_TIME = 1.8
   private state: 'invisible' | 'in' | 'visible' | 'out'
   clock: Clock
 
@@ -114,9 +116,9 @@ export class Border extends Group {
   }
 
   update(): void {
-    for (const [k, v] of Object.entries(this.boards)) {
-      v?.updateUniforms(this.getCurrentUniform())
-    }
+    const func: AlpayBoardsFunc = (_, v) =>
+      v.updateUniforms(this.getCurrentUniform())
+    this._aplayBoards(func)
   }
 
   appear(): void {
@@ -127,6 +129,11 @@ export class Border extends Group {
   disappear(): void {
     this.state = 'out'
     this.clock.start()
+  }
+
+  changeMaterial(kind: 'default' | 'dark'): void {
+    const func: AlpayBoardsFunc = (_, v) => v.changeMaterial(kind)
+    this._aplayBoards(func)
   }
 
   /**
@@ -155,7 +162,6 @@ export class Border extends Group {
     let u_time = 0
     let u_endTime = 0
     switch (this.state) {
-
       case 'in':
         u_time = this.clock.getElapsedTime()
         u_endTime = Border.APPEARANCE_TIME
@@ -174,7 +180,7 @@ export class Border extends Group {
           this.state = 'invisible'
           u_time = 0
         }
-        break;
+        break
 
       case 'visible':
         u_time = 1
@@ -186,7 +192,6 @@ export class Border extends Group {
         u_time = 0
         u_endTime = -1
         break
-
     }
     return { u_time, u_endTime }
   }
@@ -195,5 +200,11 @@ export class Border extends Group {
     const board = this.boards[key]
     if (board) return board
     else throw new ReferenceError('Error occurred in Boarder')
+  }
+
+  private _aplayBoards(func: AlpayBoardsFunc): void {
+    for (const [k, v] of Object.entries(this.boards)) {
+      if (v) func(k as keyof BorderParts, v)
+    }
   }
 }

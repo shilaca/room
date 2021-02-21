@@ -15,6 +15,8 @@ import { App } from '../app'
 import { Wire } from './wire'
 import VERT_FILL from '../../shader/boardFill.vert'
 import FRAG_FILL from '../../shader/boardFill.frag'
+import VERT_DARK from '../../shader/boardDark.vert'
+import FRAG_DARK from '../../shader/boardDark.frag'
 import { FormatUniforms, formatUniforms } from '../utils'
 
 export interface FillMaterialUniforms {
@@ -50,6 +52,7 @@ export class Board extends Group {
   horWires: Group
 
   private fill_mat: RawShaderMaterial
+  private fill_dark: RawShaderMaterial
   fill: Mesh
 
   constructor(private direction: 1 | 2 | 3 | 4 | 5, private texture: Texture) {
@@ -112,7 +115,13 @@ export class Board extends Group {
       fragmentShader: FRAG_FILL,
       side: FrontSide,
       transparent: true
-      // opacity: 0.5
+    })
+    this.fill_dark = new RawShaderMaterial({
+      uniforms: formatUniforms(fillUniforms),
+      vertexShader: VERT_DARK,
+      fragmentShader: FRAG_DARK,
+      side: FrontSide,
+      transparent: true
     })
     this.fill = new Mesh(this.geo, this.fill_mat)
     this.fill.position.setZ(0.001)
@@ -123,10 +132,10 @@ export class Board extends Group {
     this.fill.layers.enable(App.LAYER_BLOOM_ESC)
 
     // add
-    this.add(this.fill)
     this.add(this.points)
     this.add(this.verWires)
     this.add(this.horWires)
+    this.add(this.fill)
   }
 
   updateUniforms(uniforms: Partial<FillMaterialUniforms>): void {
@@ -134,7 +143,23 @@ export class Board extends Group {
       const key = k as FillMaterialUniformsKey
       const val = v as FillMaterialUniforms[FillMaterialUniformsKey]
       const uni = this.fill_mat.uniforms as FormatUniforms<FillMaterialUniforms>
-      uni[key].value = val
+      const uni_dark = this.fill_dark
+        .uniforms as FormatUniforms<FillMaterialUniforms>
+      if (key in uni) uni[key].value = val
+      if (key in uni_dark) uni_dark[key].value = val
+    }
+  }
+
+  changeMaterial(kind: 'default' | 'dark'): void {
+    switch (kind) {
+      case 'dark':
+        this.fill.material = this.fill_dark
+        break
+
+      case 'default':
+      default:
+        this.fill.material = this.fill_mat
+        break
     }
   }
 }

@@ -334,10 +334,12 @@ export class App {
   }
 
   private render(): void {
-    this.border.switch('wire')
+    this.border.switch('all')
+    this.border.changeMaterial('dark')
     this.scene.traverse(this.darkenNonBloomed.bind(this))
     this.bloomComposer.render()
     this.border.switch('fill')
+    this.border.changeMaterial('default')
     this.scene.traverse(this.restoreMaterial.bind(this))
     this.mainComposer.render()
     // this.renderer.render(this.scene, this.camera)
