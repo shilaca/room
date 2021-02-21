@@ -1,5 +1,6 @@
 import { Clock, Group, Texture } from 'three'
 import { Board, FillMaterialUniforms } from './board'
+import BezierEasing from 'bezier-easing'
 
 interface BorderParts {
   floor: Board
@@ -12,6 +13,8 @@ interface BorderParts {
 type AlpayBoardsFunc = (k: keyof BorderParts, v: Board) => void
 
 export class Border extends Group {
+  static appearBezire = BezierEasing(0.16, 0.35, 0.34, 0.87)
+
   private boards: Partial<BorderParts> = {}
   get floor(): Board {
     return this._get('floor')
@@ -47,8 +50,8 @@ export class Border extends Group {
   wire: Group
   fill: Group
 
-  static APPEARANCE_TIME = 1.8
-  static DISAPPEARANCE_TIME = 1.8
+  static APPEARANCE_TIME = 1.2
+  static DISAPPEARANCE_TIME = 1.2
   private state: 'invisible' | 'in' | 'visible' | 'out'
   clock: Clock
 
@@ -159,41 +162,45 @@ export class Border extends Group {
   }
 
   private getCurrentUniform(): Partial<FillMaterialUniforms> {
-    let u_time = 0
-    let u_endTime = 0
+    let time = 0
+    let endTime = 0
+    let u_rate = 0
     switch (this.state) {
       case 'in':
-        u_time = this.clock.getElapsedTime()
-        u_endTime = Border.APPEARANCE_TIME
-        if (u_time >= u_endTime) {
+        time = this.clock.getElapsedTime()
+        endTime = Border.APPEARANCE_TIME
+        if (time >= endTime) {
           this.clock.stop()
           this.state = 'visible'
-          u_time = u_endTime
+          u_rate = 1
+        } else {
+          u_rate = 1 - (endTime - time)
         }
         break
 
       case 'out':
-        u_endTime = Border.DISAPPEARANCE_TIME
-        u_time = u_endTime - this.clock.getElapsedTime()
-        if (u_time <= 0) {
+        endTime = Border.DISAPPEARANCE_TIME
+        time = endTime - this.clock.getElapsedTime()
+        if (time <= 0) {
           this.clock.stop()
           this.state = 'invisible'
-          u_time = 0
+          u_rate = 0
+        } else {
+          u_rate = 1 - (endTime - time)
         }
         break
 
       case 'visible':
-        u_time = 1
-        u_endTime = 1
+        u_rate = 1
         break
 
       case 'invisible':
       default:
-        u_time = 0
-        u_endTime = -1
+        u_rate = 0
         break
     }
-    return { u_time, u_endTime }
+    u_rate = Border.appearBezire(u_rate)
+    return { u_rate }
   }
 
   private _get(key: keyof BorderParts): Board {

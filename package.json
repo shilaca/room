@@ -8,6 +8,7 @@
     "type-check": "tsc"
   },
   "dependencies": {
+    "bezier-easing": "^2.1.0",
     "calc-lib": "file:../calcLib",
     "next": "^10.0.4",
     "react": "^16.14.0",

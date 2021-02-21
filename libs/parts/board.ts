@@ -20,8 +20,11 @@ import FRAG_DARK from '../../shader/boardDark.frag'
 import { FormatUniforms, formatUniforms } from '../utils'
 
 export interface FillMaterialUniforms {
-  u_time: number // [float; ms] 時間経過 アニメーションの開始は 0ms から始まる
-  u_endTime: number // [float; ms] アニメーションの終了時間
+  u_rate: number // [float; .0 ~ 1.] アニメーションの変化割合
+  /**
+   * .0: 透明 or 前のテクスチャ
+   * 1.: 現在のテクスチャ or 次のテクスチャ
+   */
   u_direction: number // [int] 位置 下のコメント参照
   /*        -----
    *        | 3 |
@@ -104,8 +107,7 @@ export class Board extends Group {
 
     // setup board
     const fillUniforms: FillMaterialUniforms = {
-      u_time: 0.0,
-      u_endTime: 3.0,
+      u_rate: 0.0,
       u_direction: this.direction,
       u_main_texture: this.texture
     }

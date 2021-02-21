@@ -3,10 +3,9 @@ precision mediump float;
 varying vec2 vUv;
 varying vec3 vColor;
 
-uniform float u_time;
-uniform float u_endTime;
+uniform float u_rate;
 uniform int u_direction;
-uniform sampler2D u_main_texture;
+// uniform sampler2D u_main_texture;
 
 // 2D Random
 float random(in vec2 st) {
@@ -29,14 +28,14 @@ float noise (in vec2 st) {
 
 void main() {
     vec2 uv = vUv;
-    float rate = u_time <= u_endTime ? 1.0 - (u_endTime - u_time) : 0.0;
+    float rate = u_rate;
 
     vec2 pos = vec2(uv * 8.);
 
     vec3 color = vec3(0.);
-    float t = .4;
-    float alpha = rate == 0. ? 0. : noise(pos) + rate;
-    alpha = alpha * random(vec2(rate)) * t + (1.0 - t) * rate;
+    float t = noise(vec2(rate));
+    float alpha = rate == 0. ? 0. : noise(pos) + (t + (1.0 - t) * rate);
+    alpha = alpha * rate;
 
     gl_FragColor = vec4(color, alpha);
 }

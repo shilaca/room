@@ -19,16 +19,14 @@ import {
   Vector2,
   Vector3,
   WebGLRenderer,
-  WebGLRenderTarget,
-  Texture,
-  RGBAFormat,
-  LinearFilter
+  Texture
 } from 'three'
 import Tweakpane from 'tweakpane'
 import { rad2Deg } from 'calc-lib'
 import { Border } from './parts/border'
 import VERT_MAIN from '../shader/main.vert'
 import FRAG_MAIN from '../shader/main.frag'
+import BezierEasing from 'bezier-easing'
 
 export class App {
   static LAYER_MAIN = 0
@@ -162,6 +160,28 @@ export class App {
       title: 'Disappear'
     })
     disappearBtn.on('click', () => this.border.disappear())
+    const bezireData = {
+      x1: 0.16,
+      y1: 0.35,
+      x2: 0.34,
+      y2: 0.87
+    }
+    const bezireRange = {
+      min: 0,
+      max: 1,
+      step: 0.01
+    }
+    const bezireParam = this.pane.addFolder({ title: 'Bezire' })
+    for (const [k, v] of Object.entries(bezireData)) {
+      bezireParam.addInput(bezireData, k, bezireRange).on('change', _ => {
+        Border.appearBezire = BezierEasing(
+          bezireData.x1,
+          bezireData.y1,
+          bezireData.x2,
+          bezireData.y2
+        )
+      })
+    }
   }
 
   async initialize(textures: {
