@@ -161,10 +161,10 @@ export class App {
     })
     disappearBtn.on('click', () => this.border.disappear())
     const bezireData = {
-      x1: 0.16,
-      y1: 0.35,
-      x2: 0.34,
-      y2: 0.87
+      x1: 0.72,
+      y1: 0.01,
+      x2: 0.67,
+      y2: 1
     }
     const bezireRange = {
       min: 0,
